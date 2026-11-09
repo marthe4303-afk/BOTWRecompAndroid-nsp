@@ -15,24 +15,32 @@ jobs:
           git remote add amaral https://github.com/rickamaral94/Botwnspxci.git
           git fetch amaral ccr-83419136-h3hlw3 --no-tags
 
-      - name: Gerar relatório
+      
+      - name: Comparar os projetos
         run: |
           R=amaral/ccr-83419136-h3hlw3
+          BASE=$(git merge-base HEAD "$R")
+
           {
-            echo "## Seu fork"
-            git log --oneline -3
+            echo "## Distância entre os projetos"
+            git rev-list --left-right --count HEAD..."$R"
+
             echo
-            echo "## Ponto em comum com o repositório do importador"
-            git merge-base HEAD "$R" || echo "nenhum (históricos independentes)"
+            echo "## Commits exclusivos do importador"
+            git log --oneline "$BASE..$R" | head -100
+
             echo
-            echo "## Commits do importador"
-            git log --oneline -i -E --grep='nsp|xci|nximport' "$R" | head -80 || true
+            echo "## Alterações do importador"
+            git diff --stat "$BASE" "$R"
+
             echo
-            echo "## Arquivos em tools/nximport"
-            git ls-tree -r --name-only "$R" -- tools/nximport | head -80 || true
+            echo "## Arquivos modificados pelo importador"
+            git diff --name-status "$BASE" "$R" | head -150
+
             echo
-            echo "## Submódulos"
-            git show "$R:.gitmodules" || true
-          } > relatorio.md 2>&1
-          cat relatorio.md
-          { echo '```'; cat relatorio.md; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            echo "## Alterações exclusivas do meu fork"
+            git diff --stat "$BASE" HEAD
+          } > relatorio_comparacao.md
+
+          cat relatorio_comparacao.md
+          cat relatorio_comparacao.md >> "$GITHUB_STEP_SUMMARY"
