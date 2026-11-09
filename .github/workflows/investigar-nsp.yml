@@ -1,0 +1,38 @@
+name: Investigar importador NSP
+on:
+  workflow_dispatch:
+
+jobs:
+  relatorio:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Baixar o repositório do importador
+        run: |
+          git remote add amaral https://github.com/rickamaral94/Botwnspxci.git
+          git fetch amaral ccr-83419136-h3hlw3 --no-tags
+
+      - name: Gerar relatório
+        run: |
+          R=amaral/ccr-83419136-h3hlw3
+          {
+            echo "## Seu fork"
+            git log --oneline -3
+            echo
+            echo "## Ponto em comum com o repositório do importador"
+            git merge-base HEAD "$R" || echo "nenhum (históricos independentes)"
+            echo
+            echo "## Commits do importador"
+            git log --oneline -i -E --grep='nsp|xci|nximport' "$R" | head -80 || true
+            echo
+            echo "## Arquivos em tools/nximport"
+            git ls-tree -r --name-only "$R" -- tools/nximport | head -80 || true
+            echo
+            echo "## Submódulos"
+            git show "$R:.gitmodules" || true
+          } > relatorio.md 2>&1
+          cat relatorio.md
+          { echo '```'; cat relatorio.md; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
